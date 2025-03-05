@@ -2,7 +2,7 @@
 
 # MCP Server
 
-> 🚧 **Status Update:** Major improvements in progress! I'm refactoring the codebase, implementing a comprehensive caching system (based on automatic webhook integration), complete name-based lookups for all workspace resources, enhanced error handling, and more. See [GitHub Issue #8](https://github.com/TaazKareem/clickup-mcp-server/issues/8) for details.
+> 🚧 **Status Update:** Major improvements in progress! I'm refactoring the codebase, bringing more optimization features and tools including a comprehensive caching system (based on automatic webhook integration), complete name-based lookups for all workspace resources, enhanced error handling, and more. See [GitHub Issue #8](https://github.com/TaazKareem/clickup-mcp-server/issues/8) for details on what I'm currently working.
 
 A Model Context Protocol (MCP) server for integrating ClickUp tasks with AI applications. This server allows AI agents to interact with ClickUp tasks, spaces, lists, and folders through a standardized protocol.
 
