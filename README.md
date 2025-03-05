@@ -26,7 +26,7 @@ npx -y @taazkareem/clickup-mcp-server \
 ## Smithery
 [![smithery badge](https://smithery.ai/badge/@TaazKareem/clickup-mcp-server)](https://smithery.ai/server/@TaazKareem/clickup-mcp-server)
 
-The server is also hosted on [Smithery]([https://app.clickup.com/settings/apps](https://smithery.ai/server/@TaazKareem/clickup-mcp-server)). There you can Preview the available tools or copy the commands to run on various clients
+The server is also hosted on [Smithery]([https://app.clickup.com/settings/apps](https://smithery.ai/server/@TaazKareem/clickup-mcp-server). There you can preview the available tools or copy the commands to run on various clients
 
 ## Features
 
