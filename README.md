@@ -71,7 +71,7 @@ When connected to Claude through the MCP, you can:
    npm install
    ```
 
-3. Create an `.env` file with your ClickUp credentials:
+3. Update the `.env` file with your ClickUp credentials:
    ```
    CLICKUP_API_KEY=your_api_key_here
    CLICKUP_TEAM_ID=your_team_id_here

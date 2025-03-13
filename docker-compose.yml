@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  clickup-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clickup-mcp-server
+    environment:
+      - CLICKUP_API_KEY=${CLICKUP_API_KEY}
+      - CLICKUP_TEAM_ID=${CLICKUP_TEAM_ID}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    external: true

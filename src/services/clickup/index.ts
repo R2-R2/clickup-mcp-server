@@ -21,12 +21,14 @@ export { WorkspaceService } from './workspace.js';
 export { TaskService } from './task.js';
 export { ListService } from './list.js';
 export { FolderService } from './folder.js';
+export { TimeTrackingService } from './timetracking.js';
 
 // Import service classes for the factory function
 import { WorkspaceService } from './workspace.js';
 import { TaskService } from './task.js';
 import { ListService } from './list.js';
 import { FolderService } from './folder.js';
+import { TimeTrackingService } from './timetracking.js';
 
 /**
  * Configuration options for ClickUp services
@@ -45,6 +47,7 @@ export interface ClickUpServices {
   task: TaskService;
   list: ListService;
   folder: FolderService;
+  timeTracking: TimeTrackingService;
 }
 
 /**
@@ -62,6 +65,7 @@ export function createClickUpServices(config: ClickUpServiceConfig): ClickUpServ
     workspace: workspaceService,
     task: new TaskService(apiKey, teamId, baseUrl, workspaceService),
     list: new ListService(apiKey, teamId, baseUrl, workspaceService),
-    folder: new FolderService(apiKey, teamId, baseUrl, workspaceService)
+    folder: new FolderService(apiKey, teamId, baseUrl, workspaceService),
+    timeTracking: new TimeTrackingService(apiKey, teamId, baseUrl)
   };
 } 

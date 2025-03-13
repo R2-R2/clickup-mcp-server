@@ -19,5 +19,6 @@ export const {
   list: listService,
   task: taskService,
   folder: folderService,
-  workspace: workspaceService
+  workspace: workspaceService,
+  timeTracking: timeTrackingService
 } = clickUpServices; 
