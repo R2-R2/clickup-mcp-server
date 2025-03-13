@@ -1,3 +1,4 @@
+# THIS IS A WORK IN PROGRESS. Partially working, but needs a tool to list lists in Spaces and to list tasks in lists.
 # ClickUp MCP Server
 
 Connect Claude and other AI assistants to ClickUp using the Model Context Protocol (MCP). This server enables AI assistants to manage tasks, track time, analyze progress, and provide insights based on your ClickUp data.
