@@ -44,6 +44,7 @@ import {
   getCurrentTimerTool, handleGetCurrentTimer,
   addTimeEntryTool, handleAddTimeEntry
 } from "./tools/timetracking.js";
+import { getResourceList, getResourceContent } from "./resources/index.js";
 
 // Initialize ClickUp services
 const services = createClickUpServices({
@@ -201,13 +202,30 @@ export function configureServer() {
     throw new Error("Prompt not found");
   });
 
-  // Setup empty resources handler for now
+  // Setup resources handlers
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: [] };
+    const resources = await getResourceList();
+    return { resources };
   });
 
-  server.setRequestHandler(ReadResourceRequestSchema, async () => {
-    throw new Error("Resource not found");
+  server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+    const { uri } = req.params;
+    
+    const content = await getResourceContent(uri);
+    
+    if (!content) {
+      throw new Error(`Resource not found: ${uri}`);
+    }
+    
+    return {
+      contents: [
+        {
+          uri,
+          text: content,
+          mimeType: "text/markdown"
+        }
+      ]
+    };
   });
 
   return server;
