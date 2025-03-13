@@ -37,12 +37,11 @@ import {
   deleteFolderTool, handleDeleteFolder
 } from "./tools/folder.js";
 import {
-  getTimeTrackingTool, handleGetTimeTracking,
-  startTimerTool, handleStartTimer,
-  stopTimerTool, handleStopTimer,
-  getTimeTrackingSummaryTool, handleGetTimeTrackingSummary,
-  getCurrentTimerTool, handleGetCurrentTimer,
-  addTimeEntryTool, handleAddTimeEntry
+  getTimeTrackingReportTool,
+  startTimerTool,
+  stopTimerTool,
+  getCurrentTimerTool,
+  getTimeHistoryTool
 } from "./tools/timetracking.js";
 import { getResourceList, getResourceContent } from "./resources/index.js";
 import { getAllPrompts, handlePrompt } from "./prompts/index.js";
@@ -110,12 +109,11 @@ export function configureServer() {
         deleteFolderTool,
         
         // Time tracking tools
-        getTimeTrackingTool,
+        getTimeTrackingReportTool,
         startTimerTool,
         stopTimerTool,
-        getTimeTrackingSummaryTool,
         getCurrentTimerTool,
-        addTimeEntryTool
+        getTimeHistoryTool
       ]
     };
   });
@@ -176,18 +174,16 @@ export function configureServer() {
         return handleDeleteFolder(params);
       
       // Time tracking handlers
-      case "get_time_tracking":
-        return handleGetTimeTracking(params);
+      case "get_time_tracking_report":
+        return getTimeTrackingReportTool.handler({ period: params.period as string });
       case "start_timer":
-        return handleStartTimer(params);
+        return startTimerTool.handler(params as any);
       case "stop_timer":
-        return handleStopTimer();
-      case "get_time_tracking_summary":
-        return handleGetTimeTrackingSummary(params);
+        return stopTimerTool.handler();
       case "get_current_timer":
-        return handleGetCurrentTimer();
-      case "add_time_entry":
-        return handleAddTimeEntry(params);
+        return getCurrentTimerTool.handler();
+      case "get_time_history":
+        return getTimeHistoryTool.handler({ count: params.count as number });
       
       default:
         throw new Error(`Unknown tool: ${name}`);

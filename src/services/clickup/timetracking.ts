@@ -7,7 +7,8 @@
  * - Retrieving time entries
  */
 
-import { BaseClickUpService } from './base.js';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { BaseClickUpService, ClickUpServiceError, ErrorCode } from './base.js';
 
 /**
  * Parameters for time tracking report
@@ -60,6 +61,97 @@ export class TimeTrackingService extends BaseClickUpService {
    */
   constructor(apiKey: string, teamId: string, baseUrl?: string) {
     super(apiKey, teamId, baseUrl);
+  }
+
+  /**
+   * Makes a GET request to the ClickUp API
+   * @param url API endpoint
+   * @param params Query parameters
+   * @returns Axios response
+   */
+  protected async get(url: string, params: Record<string, any> = {}): Promise<AxiosResponse> {
+    return this.makeRequest(() => this.client.get(url, { params }));
+  }
+
+  /**
+   * Makes a POST request to the ClickUp API
+   * @param url API endpoint
+   * @param data Request body
+   * @returns Axios response
+   */
+  protected async post(url: string, data: any): Promise<AxiosResponse> {
+    return this.makeRequest(() => this.client.post(url, data));
+  }
+
+  /**
+   * Makes a PUT request to the ClickUp API
+   * @param url API endpoint
+   * @param data Request body
+   * @returns Axios response
+   */
+  protected async put(url: string, data: any): Promise<AxiosResponse> {
+    return this.makeRequest(() => this.client.put(url, data));
+  }
+
+  /**
+   * Makes a DELETE request to the ClickUp API
+   * @param url API endpoint
+   * @returns Axios response
+   */
+  protected async delete(url: string): Promise<AxiosResponse> {
+    return this.makeRequest(() => this.client.delete(url));
+  }
+
+  /**
+   * Handles API errors
+   * @param error Error to handle
+   * @param message Error message prefix
+   */
+  protected handleApiError(error: any, message: string): never {
+    if (error instanceof ClickUpServiceError) {
+      throw error;
+    }
+
+    let errorCode = ErrorCode.UNKNOWN;
+    let status: number | undefined = undefined;
+    let details: any = null;
+
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        status = error.response.status;
+        details = error.response.data;
+        
+        switch (status) {
+          case 401:
+            errorCode = ErrorCode.UNAUTHORIZED;
+            break;
+          case 404:
+            errorCode = ErrorCode.NOT_FOUND;
+            break;
+          case 429:
+            errorCode = ErrorCode.RATE_LIMIT;
+            break;
+          case 400:
+            errorCode = ErrorCode.VALIDATION;
+            break;
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            errorCode = ErrorCode.SERVER_ERROR;
+            break;
+        }
+      } else if (error.request) {
+        errorCode = ErrorCode.NETWORK_ERROR;
+        details = { request: error.request };
+      }
+
+      message = `${message}: ${error.message}`;
+    } else {
+      message = `${message}: ${error?.message || 'Unknown error'}`;
+    }
+
+    throw new ClickUpServiceError(message, errorCode, details, status);
   }
 
   /**

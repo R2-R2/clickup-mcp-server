@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   clickup-mcp:
     build:
@@ -17,4 +15,5 @@ services:
 
 networks:
   mcp-network:
-    external: true
+    external: false
+    name: mcp-network
