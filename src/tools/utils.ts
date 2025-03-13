@@ -1,157 +1,115 @@
 /**
- * Utility functions for ClickUp MCP tools
+ * ClickUp MCP Utilities
+ * 
+ * This module provides shared utility functions for the MCP server tools.
  */
+
+import { WorkspaceService } from '../services/clickup/workspace.js';
+import { workspaceService, taskService } from '../services/shared.js';
 
 /**
- * Get a timestamp for a relative time
- * 
- * @param hours Hours from now
- * @param days Days from now
- * @param weeks Weeks from now
- * @param months Months from now
- * @returns Timestamp in milliseconds
+ * Parse a string date into Unix timestamp milliseconds
+ * @param date ISO date string, Unix timestamp (string or number), or natural language date
+ * @returns Unix timestamp in milliseconds
  */
-export function getRelativeTimestamp(hours = 0, days = 0, weeks = 0, months = 0): number {
-  const now = new Date();
-  
-  if (hours) now.setHours(now.getHours() + hours);
-  if (days) now.setDate(now.getDate() + days);
-  if (weeks) now.setDate(now.getDate() + (weeks * 7));
-  if (months) now.setMonth(now.getMonth() + months);
-  
-  return now.getTime();
-}
-
-/**
- * Parse a due date string into a timestamp
- * Supports ISO 8601 format or natural language like "tomorrow"
- * 
- * @param dateString Date string to parse
- * @returns Timestamp in milliseconds or undefined if parsing fails
- */
-export function parseDueDate(dateString: string): number | undefined {
-  if (!dateString) return undefined;
-  
-  try {
-    // Handle natural language dates
-    const lowerDate = dateString.toLowerCase();
-    const now = new Date();
-    
-    if (lowerDate === 'today') {
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      return today.getTime();
-    }
-    
-    // Handle relative dates with specific times
-    const relativeTimeRegex = /(?:(\d+)\s*(days?|weeks?|months?)\s*from\s*now|tomorrow|next\s+(?:week|month))\s*(?:at\s+(\d+)(?::(\d+))?\s*(am|pm)?)?/i;
-    const match = lowerDate.match(relativeTimeRegex);
-    
-    if (match) {
-      const date = new Date();
-      const [_, amount, unit, hours, minutes, meridian] = match;
-      
-      // Calculate the future date
-      if (amount && unit) {
-        const value = parseInt(amount);
-        if (unit.startsWith('day')) {
-          date.setDate(date.getDate() + value);
-        } else if (unit.startsWith('week')) {
-          date.setDate(date.getDate() + (value * 7));
-        } else if (unit.startsWith('month')) {
-          date.setMonth(date.getMonth() + value);
-        }
-      } else if (lowerDate.startsWith('tomorrow')) {
-        date.setDate(date.getDate() + 1);
-      } else if (lowerDate.includes('next week')) {
-        date.setDate(date.getDate() + 7);
-      } else if (lowerDate.includes('next month')) {
-        date.setMonth(date.getMonth() + 1);
-      }
-
-      // Set the time if specified
-      if (hours) {
-        let parsedHours = parseInt(hours);
-        const parsedMinutes = minutes ? parseInt(minutes) : 0;
-        
-        // Convert to 24-hour format if meridian is specified
-        if (meridian?.toLowerCase() === 'pm' && parsedHours < 12) parsedHours += 12;
-        if (meridian?.toLowerCase() === 'am' && parsedHours === 12) parsedHours = 0;
-        
-        date.setHours(parsedHours, parsedMinutes, 0, 0);
-      } else {
-        // Default to end of day if no time specified
-        date.setHours(23, 59, 59, 999);
-      }
-      
-      return date.getTime();
-    }
-    
-    // Handle hours from now
-    const hoursRegex = /(\d+)\s*hours?\s*from\s*now/i;
-    const daysRegex = /(\d+)\s*days?\s*from\s*now/i;
-    const weeksRegex = /(\d+)\s*weeks?\s*from\s*now/i;
-    const monthsRegex = /(\d+)\s*months?\s*from\s*now/i;
-    
-    if (hoursRegex.test(lowerDate)) {
-      const hours = parseInt(lowerDate.match(hoursRegex)![1]);
-      return getRelativeTimestamp(hours);
-    }
-    
-    if (daysRegex.test(lowerDate)) {
-      const days = parseInt(lowerDate.match(daysRegex)![1]);
-      return getRelativeTimestamp(0, days);
-    }
-    
-    if (weeksRegex.test(lowerDate)) {
-      const weeks = parseInt(lowerDate.match(weeksRegex)![1]);
-      return getRelativeTimestamp(0, 0, weeks);
-    }
-    
-    if (monthsRegex.test(lowerDate)) {
-      const months = parseInt(lowerDate.match(monthsRegex)![1]);
-      return getRelativeTimestamp(0, 0, 0, months);
-    }
-    
-    // Try to parse as a date string
-    const date = new Date(dateString);
-    if (!isNaN(date.getTime())) {
-      return date.getTime();
-    }
-    
-    // If all parsing fails, return undefined
+export function parseDueDate(date: string | number): number | undefined {
+  if (date === undefined || date === null) {
     return undefined;
+  }
+  
+  if (typeof date === 'number') {
+    return date;
+  }
+  
+  // If it's a simple number string, parse as int
+  if (/^\d+$/.test(date)) {
+    return parseInt(date, 10);
+  }
+  
+  // Try to parse as ISO date string
+  try {
+    const parsed = new Date(date).getTime();
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Continue to other methods if this fails
+  }
+  
+  // Fall back to regular Date parsing
+  try {
+    return new Date(date).getTime();
   } catch (error) {
-    console.warn(`Failed to parse due date: ${dateString}`, error);
+    console.error(`Failed to parse date: ${date}`, error);
     return undefined;
   }
 }
 
 /**
- * Format a due date timestamp into a human-readable string
- * 
+ * Format a Unix timestamp (in milliseconds) to a readable date string
  * @param timestamp Unix timestamp in milliseconds
- * @returns Formatted date string or undefined if timestamp is invalid
+ * @returns Formatted date string
  */
-export function formatDueDate(timestamp: number | null | undefined): string | undefined {
-  if (!timestamp) return undefined;
-  
+export function formatDueDate(timestamp: number): string {
   try {
     const date = new Date(timestamp);
-    
-    if (isNaN(date.getTime())) return undefined;
-    
-    // Format: "March 10, 2025 at 10:56 PM"
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).replace(' at', ',');
+    return date.toLocaleString();
   } catch (error) {
-    console.warn(`Failed to format due date: ${timestamp}`, error);
+    console.error(`Failed to format date: ${timestamp}`, error);
+    return 'Invalid date';
+  }
+}
+
+/**
+ * Find a list ID by name using the workspace hierarchy
+ * @param workspaceService The workspace service instance
+ * @param listName The name of the list to find
+ * @returns The list information object or undefined if not found
+ */
+export async function findListIDByName(
+  workspaceService: WorkspaceService,
+  listName: string
+): Promise<{ id: string; name: string } | undefined> {
+  const hierarchy = await workspaceService.getWorkspaceHierarchy();
+  return workspaceService.findIDByNameInHierarchy(hierarchy, listName, 'list');
+}
+
+/**
+ * Find a task ID by name across all lists
+ * @param taskName The task name to search for
+ * @returns The task ID or undefined if not found
+ */
+export async function findTaskIDByName(taskName: string): Promise<string | undefined> {
+  try {
+    // Get all tasks and find the one matching the name
+    const hierarchy = await workspaceService.getWorkspaceHierarchy();
+    
+    // Look through all lists
+    for (const spaceNode of hierarchy.root.children) {
+      // Check direct lists in space
+      for (const listNode of spaceNode.children.filter(c => c.type === 'list')) {
+        const tasks = await taskService.getTasks(listNode.id);
+        const task = tasks.find(t => t.name.toLowerCase() === taskName.toLowerCase());
+        if (task) {
+          return task.id;
+        }
+      }
+      
+      // Check lists in folders
+      for (const folderNode of spaceNode.children.filter(c => c.type === 'folder')) {
+        for (const listNode of folderNode.children.filter(c => c.type === 'list')) {
+          const tasks = await taskService.getTasks(listNode.id);
+          const task = tasks.find(t => t.name.toLowerCase() === taskName.toLowerCase());
+          if (task) {
+            return task.id;
+          }
+        }
+      }
+    }
+    
+    return undefined;
+  } catch (error) {
+    console.error('Error finding task by name:', error);
     return undefined;
   }
-} 
+}
