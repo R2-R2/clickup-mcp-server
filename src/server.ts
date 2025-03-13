@@ -45,6 +45,7 @@ import {
   addTimeEntryTool, handleAddTimeEntry
 } from "./tools/timetracking.js";
 import { getResourceList, getResourceContent } from "./resources/index.js";
+import { getAllPrompts, handlePrompt } from "./prompts/index.js";
 
 // Initialize ClickUp services
 const services = createClickUpServices({
@@ -193,13 +194,19 @@ export function configureServer() {
     }
   });
 
-  // Setup empty prompts handler for now
+  // Setup prompts handlers
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return { prompts: [] };
+    return { prompts: getAllPrompts() };
   });
 
-  server.setRequestHandler(GetPromptRequestSchema, async () => {
-    throw new Error("Prompt not found");
+  server.setRequestHandler(GetPromptRequestSchema, async (req) => {
+    const { name, arguments: args } = req.params;
+    
+    try {
+      return await handlePrompt(name, args);
+    } catch (error: any) {
+      throw new Error(`Error handling prompt ${name}: ${error.message}`);
+    }
   });
 
   // Setup resources handlers
