@@ -4,6 +4,8 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { createClickUpServices } from "./services/clickup/index.js";
 import config from "./config.js";
@@ -34,6 +36,16 @@ import {
   updateFolderTool, handleUpdateFolder,
   deleteFolderTool, handleDeleteFolder
 } from "./tools/folder.js";
+import {
+  getTimeTrackingTool, handleGetTimeTracking,
+  startTimerTool, handleStartTimer,
+  stopTimerTool, handleStopTimer,
+  getTimeTrackingSummaryTool, handleGetTimeTrackingSummary,
+  getCurrentTimerTool, handleGetCurrentTimer,
+  addTimeEntryTool, handleAddTimeEntry
+} from "./tools/timetracking.js";
+import { getResourceList, getResourceContent } from "./resources/index.js";
+import { getAllPrompts, handlePrompt } from "./prompts/index.js";
 
 // Initialize ClickUp services
 const services = createClickUpServices({
@@ -50,12 +62,13 @@ const { workspace } = services;
 export const server = new Server(
   {
     name: "clickup-mcp-server",
-    version: "0.4.61",
+    version: "0.5.0", // Bump version for time tracking feature
   },
   {
     capabilities: {
       tools: {},
       prompts: {},
+      resources: {},
     },
   }
 );
@@ -67,7 +80,10 @@ export function configureServer() {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: [
+        // Workspace tools
         workspaceHierarchyTool,
+        
+        // Task tools
         createTaskTool,
         getTaskTool,
         getTasksTool,
@@ -79,15 +95,27 @@ export function configureServer() {
         updateBulkTasksTool,
         moveBulkTasksTool,
         deleteBulkTasksTool,
+        
+        // List tools
         createListTool,
         createListInFolderTool,
         getListTool,
         updateListTool,
         deleteListTool,
+        
+        // Folder tools
         createFolderTool,
         getFolderTool,
         updateFolderTool,
-        deleteFolderTool
+        deleteFolderTool,
+        
+        // Time tracking tools
+        getTimeTrackingTool,
+        startTimerTool,
+        stopTimerTool,
+        getTimeTrackingSummaryTool,
+        getCurrentTimerTool,
+        addTimeEntryTool
       ]
     };
   });
@@ -97,8 +125,11 @@ export function configureServer() {
     
     // Handle tool calls by routing to the appropriate handler
     switch (name) {
+      // Workspace handlers
       case "get_workspace_hierarchy":
         return handleGetWorkspaceHierarchy();
+      
+      // Task handlers
       case "create_task":
         return handleCreateTask(params);
       case "update_task":
@@ -121,6 +152,8 @@ export function configureServer() {
         return handleMoveBulkTasks(params as { tasks: any[], targetListId?: string, targetListName?: string });
       case "delete_bulk_tasks":
         return handleDeleteBulkTasks(params as { tasks: any[] });
+      
+      // List handlers
       case "create_list":
         return handleCreateList(params);
       case "create_list_in_folder":
@@ -131,6 +164,8 @@ export function configureServer() {
         return handleUpdateList(params);
       case "delete_list":
         return handleDeleteList(params);
+      
+      // Folder handlers
       case "create_folder":
         return handleCreateFolder(params);
       case "get_folder":
@@ -139,17 +174,65 @@ export function configureServer() {
         return handleUpdateFolder(params);
       case "delete_folder":
         return handleDeleteFolder(params);
+      
+      // Time tracking handlers
+      case "get_time_tracking":
+        return handleGetTimeTracking(params);
+      case "start_timer":
+        return handleStartTimer(params);
+      case "stop_timer":
+        return handleStopTimer();
+      case "get_time_tracking_summary":
+        return handleGetTimeTrackingSummary(params);
+      case "get_current_timer":
+        return handleGetCurrentTimer();
+      case "add_time_entry":
+        return handleAddTimeEntry(params);
+      
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
   });
 
+  // Setup prompts handlers
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return { prompts: [] };
+    return { prompts: getAllPrompts() };
   });
 
-  server.setRequestHandler(GetPromptRequestSchema, async () => {
-    throw new Error("Prompt not found");
+  server.setRequestHandler(GetPromptRequestSchema, async (req) => {
+    const { name, arguments: args } = req.params;
+    
+    try {
+      return await handlePrompt(name, args);
+    } catch (error: any) {
+      throw new Error(`Error handling prompt ${name}: ${error.message}`);
+    }
+  });
+
+  // Setup resources handlers
+  server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    const resources = await getResourceList();
+    return { resources };
+  });
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+    const { uri } = req.params;
+    
+    const content = await getResourceContent(uri);
+    
+    if (!content) {
+      throw new Error(`Resource not found: ${uri}`);
+    }
+    
+    return {
+      contents: [
+        {
+          uri,
+          text: content,
+          mimeType: "text/markdown"
+        }
+      ]
+    };
   });
 
   return server;
